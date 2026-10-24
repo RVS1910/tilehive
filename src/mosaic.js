@@ -5,16 +5,37 @@
 // time and processes messages one at a time, which is what makes the
 // "fastest finger" claim race safe without any extra locking code.
 
-const DEFAULT_CONFIG = {
-  maxPainters: 100,        // Section 3.13: "Max concurrent painters"
-  blockW: 5, blockH: 2,    // Section 3.13: "Tiles per block" (5x2 = 10 tiles)
-  inactivityTimeoutMs: 10 * 60 * 1000, // Section 3.13: "Turn inactivity timeout"
-  checkinGraceMs: 2 * 60 * 1000,       // Section 3.13: "Check-in grace period"
-  racePoolSize: 8,                     // Section 3.13: "Queue race pool size"
-  tickIntervalMs: 15 * 1000,           // how often we check for idle/expired things
-  signupWindowMs: 5 * 60 * 1000,       // Section 3.1: the 5-minute sizing window
-  hourLengthMs: 60 * 60 * 1000,
+// Two mode profiles: Blitz is the always-on, ambient, low-commitment mode —
+// the one a brand-new visitor should land in. Long is a scheduled daily
+// event (e.g. "The Long Hour, 8pm"), not a standing alternative, so it isn't
+// given its own permanent "current" instance the way Blitz is — it gets
+// spun up on a schedule using this same profile.
+const MODE_PROFILES = {
+  blitz: {
+    maxPainters: 100,
+    blockW: 2, blockH: 1,                 // 2–3 tiles — fast, gestural marks, not deep craft
+    inactivityTimeoutMs: 60 * 1000,
+    checkinGraceMs: 20 * 1000,
+    racePoolSize: 8,
+    tickIntervalMs: 5 * 1000,
+    signupWindowMs: 45 * 1000,
+    hourLengthMs: 10 * 60 * 1000,
+    namingWindowMs: 40 * 1000,           // right after lock, not during — there's no spare time mid-round
+  },
+  long: {
+    maxPainters: 100,
+    blockW: 5, blockH: 2,                 // 10 tiles — room for real, time-invested craft
+    inactivityTimeoutMs: 10 * 60 * 1000,
+    checkinGraceMs: 2 * 60 * 1000,
+    racePoolSize: 8,
+    tickIntervalMs: 15 * 1000,
+    signupWindowMs: 5 * 60 * 1000,
+    hourLengthMs: 60 * 60 * 1000,
+    namingWindowMs: 10 * 60 * 1000,
+  },
 };
+const DEFAULT_MODE = 'blitz'; // the ambient, always-on mode a fresh visitor lands in
+const DEFAULT_CONFIG = MODE_PROFILES[DEFAULT_MODE];
 
 // Very small starter list — expand this freely, it's just plain text matching.
 const BLOCKED_WORDS = ['badword1', 'badword2'];
@@ -27,9 +48,14 @@ export class MosaicHour {
     this.ready = this.state.blockConcurrencyWhile(() => this.load());
   }
 
-  async load() {
-    const stored = await this.state.storage.get(['config', 'hour', 'blocks', 'queue', 'users', 'nameVotes']);
-    this.config = stored.get('config') || DEFAULT_CONFIG;
+  async load(requestedMode) {
+    const stored = await this.state.storage.get(['modeKey', 'config', 'hour', 'blocks', 'queue', 'users', 'nameVotes']);
+    // Mode is decided once, the first time this instance is ever used, then
+    // persists for its lifetime — "current" is always a Blitz instance,
+    // "long-hour" is always Long, nobody can flip one into the other mid-run.
+    this.modeKeyPersisted = stored.has('modeKey');
+    this.modeKey = stored.get('modeKey') || requestedMode || DEFAULT_MODE;
+    this.config = MODE_PROFILES[this.modeKey] || DEFAULT_CONFIG;
     this.hour = stored.get('hour') || this.createNewHour();
     this.blocks = stored.get('blocks') || [];
     this.queue = stored.get('queue') || [];
@@ -64,6 +90,20 @@ export class MosaicHour {
   async fetch(request) {
     await this.ready;
     const url = new URL(request.url);
+
+    // A brand-new instance (never persisted a modeKey before) adopts whatever
+    // mode its very first caller asked for — this is how the Worker tells a
+    // fresh Durable Object "you're a Blitz room" vs "you're the Long Hour."
+    if (!this.modeKeyPersisted) {
+      const requestedMode = url.searchParams.get('mode');
+      if (requestedMode && MODE_PROFILES[requestedMode]) {
+        this.modeKey = requestedMode;
+        this.config = MODE_PROFILES[requestedMode];
+        this.hour = this.createNewHour();
+      }
+      await this.state.storage.put('modeKey', this.modeKey);
+      this.modeKeyPersisted = true;
+    }
 
     if (url.pathname === '/ws') {
       if (request.headers.get('Upgrade') !== 'websocket') {
@@ -120,6 +160,7 @@ export class MosaicHour {
         await this.tryAssignBlocks();
         await this.persist('queue', 'blocks', 'hour');
         this.broadcastState();
+        this.notifyQueuePositions();
         break;
       }
       case 'claimBlock': {
@@ -128,6 +169,10 @@ export class MosaicHour {
       }
       case 'stroke': {
         this.applyStroke(session.userId, msg);
+        break;
+      }
+      case 'undo': {
+        await this.undoLast(session.userId, msg.blockId);
         break;
       }
       case 'ping': {
@@ -165,6 +210,12 @@ export class MosaicHour {
     } else {
       this.queue.push(entry);
     }
+  }
+
+  notifyQueuePositions() {
+    this.queue.forEach((entry, idx) => {
+      this.sendToUser(entry.userId, { type: 'queuePosition', position: idx + 1, total: this.queue.length });
+    });
   }
 
   async tryAssignBlocks() {
@@ -236,6 +287,7 @@ export class MosaicHour {
     this.queue = this.queue.filter(q => q.userId !== userId);
     await this.persist('blocks', 'queue');
     this.broadcast({ type: 'blockAssigned', blockId, ownerId: userId, ownerName: block.ownerName, col: block.col, row: block.row, w: block.w, h: block.h });
+    this.notifyQueuePositions();
   }
 
   // ---------- Painting ----------
@@ -243,11 +295,24 @@ export class MosaicHour {
   applyStroke(userId, msg) {
     const block = this.blocks.find(b => b.id === msg.blockId);
     if (!block || block.ownerId !== userId || block.status !== 'open') return;
-    block.strokes.push({ points: msg.points, color: msg.color, width: msg.width });
+    // kind: 'line' (a brush/eraser stroke with points) or 'fill' (wash the whole block one color)
+    const op = msg.kind === 'fill'
+      ? { kind: 'fill', color: msg.color }
+      : { kind: 'line', points: msg.points, color: msg.color, width: msg.width };
+    block.strokes.push(op);
     block.lastActivity = Date.now();
     block.checkinSentAt = null;
-    this.broadcast({ type: 'strokeAdded', blockId: block.id, points: msg.points, color: msg.color, width: msg.width });
+    this.broadcast({ type: 'strokeAdded', blockId: block.id, op });
     if (block.strokes.length % 15 === 0) this.persist('blocks');
+  }
+
+  async undoLast(userId, blockId) {
+    const block = this.blocks.find(b => b.id === blockId);
+    if (!block || block.ownerId !== userId || block.status !== 'open') return;
+    block.strokes.pop();
+    block.lastActivity = Date.now();
+    await this.persist('blocks');
+    this.broadcast({ type: 'blockRepainted', blockId: block.id, strokes: block.strokes });
   }
 
   async lockBlock(blockId, reason) {
@@ -260,8 +325,15 @@ export class MosaicHour {
   }
 
   // ---------- Naming vote (Section 3.10) ----------
+  // Naming only opens in the final stretch of the hour — voting on a name
+  // for a mosaic nobody's seen yet doesn't give people anything real to judge.
+
+  isNamingOpen() {
+    return Date.now() >= this.hour.endsAt - this.config.namingWindowMs;
+  }
 
   submitName(userId, rawName) {
+    if (!this.isNamingOpen()) return;
     const name = String(rawName || '').trim().slice(0, 40);
     if (!name) return;
     if (this.users[userId]?.contributedHour !== this.hour.id) return; // must have painted this hour
@@ -273,6 +345,7 @@ export class MosaicHour {
   }
 
   voteName(userId, name) {
+    if (!this.isNamingOpen()) return;
     if (!this.nameVotes[name]) return;
     if (this.users[userId]?.contributedHour !== this.hour.id) return;
     for (const info of Object.values(this.nameVotes)) {
@@ -348,6 +421,7 @@ export class MosaicHour {
     await this.tryAssignBlocks();
     this.broadcast({ type: 'mosaicReset', hour: this.hour });
     this.broadcastState();
+    this.notifyQueuePositions();
   }
 
   // ---------- Broadcasting ----------
@@ -360,6 +434,7 @@ export class MosaicHour {
       blocks: this.blocks,
       queueLength: this.queue.length,
       nameVotes: this.nameVotes,
+      namingOpen: this.isNamingOpen(),
     };
   }
 
