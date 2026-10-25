@@ -210,6 +210,51 @@ export class MosaicHour {
         this.broadcastState();
         break;
       }
+      case 'getArchive': {
+        const archive = (await this.state.storage.get('archive')) || [];
+        const summary = archive.map(a => ({
+          id: a.id, name: a.name, startedAt: a.startedAt, headcount: a.headcount,
+          likes: a.likes || 0, modeKey: a.modeKey,
+        }));
+        session.ws.send(JSON.stringify({ type: 'archiveList', items: summary }));
+        break;
+      }
+      case 'getArchiveDetail': {
+        const archive = (await this.state.storage.get('archive')) || [];
+        const found = archive.find(a => a.id === msg.id);
+        session.ws.send(JSON.stringify({ type: 'archiveDetail', item: found || null }));
+        break;
+      }
+      case 'likeArchive': {
+        if (!session.userId) break;
+        const archive = (await this.state.storage.get('archive')) || [];
+        const found = archive.find(a => a.id === msg.id);
+        if (found && !(found.likedBy || []).includes(session.userId)) {
+          found.likedBy = found.likedBy || [];
+          found.likedBy.push(session.userId);
+          found.likes = found.likedBy.length;
+          await this.state.storage.put('archive', archive);
+        }
+        session.ws.send(JSON.stringify({ type: 'archiveDetail', item: found || null }));
+        break;
+      }
+      case 'getProfile': {
+        const archive = (await this.state.storage.get('archive')) || [];
+        const userId = session.userId;
+        let namingWins = 0, votesReceived = 0;
+        const contributions = [];
+        for (const a of archive) {
+          if (a.winningSubmittedBy === userId) namingWins++;
+          for (const info of Object.values(a.nameSubmissions || {})) {
+            if (info.submittedBy === userId) votesReceived += info.count;
+          }
+          if ((a.blocks || []).some(b => b.ownerId === userId)) {
+            contributions.push({ id: a.id, name: a.name, startedAt: a.startedAt, likes: a.likes || 0 });
+          }
+        }
+        session.ws.send(JSON.stringify({ type: 'profileData', namingWins, votesReceived, contributions }));
+        break;
+      }
     }
   }
 
@@ -376,7 +421,11 @@ export class MosaicHour {
     await this.ready;
     const now = Date.now();
 
-    if (!this.hour.locked && now >= this.hour.signupEndsAt) {
+    // Only lock the grid size at zero if nobody has shown up at all would be
+    // a dead room forever (Blitz's window is only 45 seconds — easy to miss
+    // on a quiet test). Keep the window open until at least one person has
+    // actually joined, then lock on the next tick.
+    if (!this.hour.locked && now >= this.hour.signupEndsAt && this.hour.headcount > 0) {
       this.hour.locked = true;
     }
 
@@ -421,8 +470,13 @@ export class MosaicHour {
       startedAt: this.hour.startedAt,
       endedAt: Date.now(),
       name: winningName || `Mosaic — ${new Date(this.hour.startedAt).toISOString()}`,
+      winningSubmittedBy: winningName ? this.nameVotes[winningName]?.submittedBy : null,
+      nameSubmissions: this.nameVotes,
       blocks: this.blocks,
       headcount: this.hour.headcount,
+      likes: 0,
+      likedBy: [],
+      modeKey: this.modeKey,
     };
     let archive = (await this.state.storage.get('archive')) || [];
     archive.unshift(archived);
@@ -454,6 +508,7 @@ export class MosaicHour {
       stats: {
         allTimeUserCount: this.stats.allTimeUserCount,
         countryCount: Object.keys(this.stats.countries).length,
+        countries: this.stats.countries,
         archiveCount: this.stats.archiveCount,
       },
       modeKey: this.modeKey,
