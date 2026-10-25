@@ -7,7 +7,7 @@ export default {
     // "current" is always the Blitz room — the always-on, low-commitment
     // mode a brand-new visitor lands in. "long-hour" is the scheduled daily
     // event and only matters while it's actually running.
-    if (url.pathname === '/ws' || url.pathname === '/archive') {
+    if (url.pathname === '/ws' || url.pathname === '/archive' || url.pathname === '/stats') {
       const wantsLong = url.searchParams.get('mode') === 'long';
       const id = env.MOSAIC.idFromName(wantsLong ? 'long-hour' : 'current');
       const stub = env.MOSAIC.get(id);
@@ -98,12 +98,12 @@ const HTML = `<!DOCTYPE html>
     <a class="navlink" onclick="showPage('stats')">Stats</a>
     <a class="navlink" onclick="showPage('profile')">Profile</a>
     <a class="navlink" onclick="showPage('pricing')">Go VIP</a>
-    <a class="navlink" id="headerSignIn" style="color:var(--amber);font-weight:600;" onclick="openNameModal('signin')">Sign in</a>
     <button id="modeBlitz" class="active" style="padding:4px 10px;">Blitz</button>
     <button id="modeLong" style="padding:4px 10px;">Long Hour</button>
     <span><b id="paintingCount">0</b> painting now</span>
     <span><b id="queueCount">0</b> waiting</span>
     <span id="statusLine">connecting...</span>
+    <a class="navlink" id="headerSignIn" style="color:var(--amber);font-weight:600;margin-right:0;" onclick="openNameModal('signin')">Sign in</a>
   </div>
 </header>
 
@@ -162,6 +162,97 @@ const HTML = `<!DOCTYPE html>
 <div class="page" id="page-archive">
   <h2 class="hero-h">Archive</h2>
   <p class="subtle">Every past hour from this room — browse freely, no sign-in needed to look.</p>
+
+  <h3 style="font-family:var(--serif);font-size:16px;margin-top:28px;">Sample mosaics</h3>
+  <p class="subtle" style="font-size:12px;">These 5 are illustrated examples, not real painted mosaics — AI-illustrated placeholders shown so the Archive isn't empty before real painters arrive.</p>
+  <div class="archGrid">
+    <div class="archCard" style="cursor:default;">
+      <svg viewBox="0 0 500 200" style="width:100%;display:block;background:#1A1120;">
+        <defs><linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#241733"/><stop offset="40%" stop-color="#5A3B5E"/><stop offset="68%" stop-color="#C06B5C"/><stop offset="100%" stop-color="#E8A94F"/></linearGradient></defs>
+        <rect width="500" height="200" fill="url(#sky1)"/>
+        <path d="M0,110 L40,80 L90,105 L150,70 L220,95 L290,75 L360,100 L430,80 L500,95 L500,200 L0,200 Z" fill="#5C4868"/>
+        <path d="M0,135 L60,115 L130,140 L210,110 L280,135 L350,105 L420,135 L500,115 L500,200 L0,200 Z" fill="#3E3350"/>
+        <path d="M0,160 Q120,145 260,160 Q380,145 500,158 L500,200 L0,200 Z" fill="#2F5A26"/>
+        <circle cx="30" cy="178" r="3" fill="#241A14"/><circle cx="34" cy="172" r="2" fill="#241A14"/>
+        <g transform="translate(290,135) scale(0.65)"><ellipse cx="0" cy="0" rx="42" ry="22" fill="#F7F1E6"/><path d="M-38 -10 Q-56 -36 -49 -56 Q-45 -66 -35 -62 Q-29 -45 -31 -20 Z" fill="#F7F1E6"/><path d="M-43 -63 L-36 -85 L-39 -61 Z" fill="#E0B94F"/><path d="M-37 -56 Q-52 -40 -43 -18" stroke="#C98AD9" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.85"/></g>
+      </svg>
+      <p style="padding:8px 10px 2px 10px;"><b style="font-family:var(--serif);">The First Telling</b></p>
+      <p class="subtle" style="padding:0 10px 10px 10px;font-size:11px;">Sample — AI-illustrated</p>
+    </div>
+
+    <div class="archCard" style="cursor:default;">
+      <svg viewBox="0 0 500 200" style="width:100%;display:block;background:#071826;">
+        <defs><linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#071826"/><stop offset="100%" stop-color="#1C6B6B"/></linearGradient></defs>
+        <rect width="500" height="200" fill="url(#sky2)"/>
+        <circle cx="60" cy="40" r="3" fill="#BFEFEF" opacity="0.6"/><circle cx="420" cy="60" r="4" fill="#BFEFEF" opacity="0.5"/><circle cx="200" cy="30" r="2.5" fill="#BFEFEF" opacity="0.6"/>
+        <path d="M0,160 L50,135 L110,155 L180,125 L250,150 L320,120 L390,150 L460,130 L500,145 L500,200 L0,200 Z" fill="#E08A6B" opacity="0.7"/>
+        <path d="M0,180 L80,160 L160,178 L250,150 L340,175 L420,155 L500,172 L500,200 L0,200 Z" fill="#C45A7A" opacity="0.8"/>
+        <ellipse cx="260" cy="95" rx="85" ry="40" fill="#E8EDED"/>
+        <path d="M185 90 Q260 60 335 90 Q300 100 260 100 Q220 100 185 90 Z" fill="#E8EDED"/>
+        <path d="M340 92 Q365 85 375 95 Q365 102 340 98 Z" fill="#E8EDED"/>
+        <circle cx="130" cy="70" r="7" fill="#E08A6B" opacity="0.8"/><circle cx="145" cy="60" r="4" fill="#E08A6B" opacity="0.8"/>
+        <circle cx="350" cy="140" r="3" fill="#BFEFEF" opacity="0.5"/><circle cx="360" cy="125" r="2" fill="#BFEFEF" opacity="0.5"/>
+      </svg>
+      <p style="padding:8px 10px 2px 10px;"><b style="font-family:var(--serif);">The Deep Hum</b></p>
+      <p class="subtle" style="padding:0 10px 10px 10px;font-size:11px;">Sample — AI-illustrated</p>
+    </div>
+
+    <div class="archCard" style="cursor:default;">
+      <svg viewBox="0 0 500 200" style="width:100%;display:block;background:#120B1F;">
+        <defs><linearGradient id="sky3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0D0818"/><stop offset="100%" stop-color="#2B1A40"/></linearGradient></defs>
+        <rect width="500" height="200" fill="url(#sky3)"/>
+        <circle cx="50" cy="30" r="2" fill="#fff"/><circle cx="130" cy="55" r="1.6" fill="#fff"/><circle cx="430" cy="35" r="2" fill="#fff"/><circle cx="470" cy="80" r="1.6" fill="#fff"/><circle cx="90" cy="100" r="1.4" fill="#fff"/>
+        <ellipse cx="130" cy="110" rx="70" ry="38" fill="#7B4B94" opacity="0.35"/>
+        <ellipse cx="370" cy="150" rx="90" ry="45" fill="#3E7CB1" opacity="0.3"/>
+        <circle cx="330" cy="90" r="34" fill="#C98A2C"/>
+        <ellipse cx="330" cy="90" rx="58" ry="12" fill="none" stroke="#E3B23C" stroke-width="4" opacity="0.8"/>
+        <g transform="translate(150,150)"><circle cx="0" cy="0" r="12" fill="#E4E7EC"/><rect x="-9" y="10" width="18" height="22" rx="4" fill="#E4E7EC"/><line x1="-9" y1="18" x2="-20" y2="10" stroke="#E4E7EC" stroke-width="4" stroke-linecap="round"/><line x1="9" y1="18" x2="20" y2="26" stroke="#E4E7EC" stroke-width="4" stroke-linecap="round"/></g>
+      </svg>
+      <p style="padding:8px 10px 2px 10px;"><b style="font-family:var(--serif);">Borrowed Light</b></p>
+      <p class="subtle" style="padding:0 10px 10px 10px;font-size:11px;">Sample — AI-illustrated</p>
+    </div>
+
+    <div class="archCard" style="cursor:default;">
+      <svg viewBox="0 0 500 200" style="width:100%;display:block;background:#1A1210;">
+        <defs><linearGradient id="sky4" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#160F1C"/><stop offset="100%" stop-color="#3A1E2A"/></linearGradient></defs>
+        <rect width="500" height="200" fill="url(#sky4)"/>
+        <path d="M60 170 L90 100 L120 170 Z" fill="#C98A2C"/><path d="M63 170 L90 110 L117 170 Z" fill="#E3B23C"/>
+        <path d="M180 170 L210 95 L240 170 Z" fill="#3E7CB1"/><path d="M183 170 L210 105 L237 170 Z" fill="#7FA8E0"/>
+        <path d="M300 170 L330 100 L360 170 Z" fill="#B23A6B"/><path d="M303 170 L330 110 L357 170 Z" fill="#D4537E"/>
+        <g stroke="#E3B23C" stroke-width="1.5" opacity="0.8"><line x1="100" y1="40" x2="100" y2="60"/><line x1="90" y1="50" x2="110" y2="50"/><line x1="93" y1="43" x2="107" y2="57"/><line x1="107" y1="43" x2="93" y2="57"/></g>
+        <circle cx="100" cy="50" r="2" fill="#E3B23C"/>
+        <g stroke="#D4537E" stroke-width="1.5" opacity="0.8"><line x1="400" y1="55" x2="400" y2="75"/><line x1="390" y1="65" x2="410" y2="65"/><line x1="393" y1="58" x2="407" y2="72"/><line x1="407" y1="58" x2="393" y2="72"/></g>
+        <circle cx="400" cy="65" r="2" fill="#D4537E"/>
+        <g transform="translate(220,160)"><circle cx="0" cy="-20" r="5" fill="#241A14"/><line x1="0" y1="-15" x2="0" y2="0" stroke="#241A14" stroke-width="3"/><line x1="0" y1="-10" x2="-10" y2="-18" stroke="#241A14" stroke-width="3"/><line x1="0" y1="-10" x2="10" y2="-18" stroke="#241A14" stroke-width="3"/><line x1="0" y1="0" x2="-7" y2="12" stroke="#241A14" stroke-width="3"/><line x1="0" y1="0" x2="7" y2="12" stroke="#241A14" stroke-width="3"/></g>
+      </svg>
+      <p style="padding:8px 10px 2px 10px;"><b style="font-family:var(--serif);">The Loud Quiet</b></p>
+      <p class="subtle" style="padding:0 10px 10px 10px;font-size:11px;">Sample — AI-illustrated</p>
+    </div>
+
+    <div class="archCard" style="cursor:default;">
+      <svg viewBox="0 0 500 200" style="width:100%;display:block;background:#0E1712;">
+        <defs><linearGradient id="sky5" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1B2B20"/><stop offset="100%" stop-color="#4C6B4E"/></linearGradient></defs>
+        <rect width="500" height="200" fill="url(#sky5)"/>
+        <g opacity="0.55"><line x1="40" y1="200" x2="40" y2="110" stroke="#2F4A32" stroke-width="6"/><ellipse cx="40" cy="95" rx="30" ry="24" fill="#2F4A32"/></g>
+        <g opacity="0.75"><line x1="130" y1="200" x2="130" y2="90" stroke="#3E6440" stroke-width="7"/><ellipse cx="130" cy="75" rx="36" ry="28" fill="#3E6440"/></g>
+        <g opacity="0.75"><line x1="440" y1="200" x2="440" y2="100" stroke="#3E6440" stroke-width="7"/><ellipse cx="440" cy="85" rx="34" ry="26" fill="#3E6440"/></g>
+        <g transform="translate(280,120)">
+          <rect x="-28" y="-10" width="56" height="50" rx="8" fill="#9B6B3C"/>
+          <circle cx="0" cy="-30" r="22" fill="#A8783D"/>
+          <circle cx="-8" cy="-33" r="4" fill="#E3B23C"/><circle cx="8" cy="-33" r="4" fill="#E3B23C"/>
+          <rect x="-40" y="-2" width="14" height="36" rx="6" fill="#9B6B3C"/>
+          <rect x="26" y="-2" width="14" height="36" rx="6" fill="#9B6B3C"/>
+          <rect x="-16" y="40" width="14" height="30" rx="5" fill="#8A5A2C"/>
+          <rect x="2" y="40" width="14" height="30" rx="5" fill="#8A5A2C"/>
+        </g>
+        <g transform="translate(180,175)"><ellipse cx="0" cy="0" rx="8" ry="5" fill="#241A14"/><path d="M-6 -3 L-10 -10 M6 -3 L10 -10" stroke="#241A14" stroke-width="2"/></g>
+      </svg>
+      <p style="padding:8px 10px 2px 10px;"><b style="font-family:var(--serif);">Rust and Moss</b></p>
+      <p class="subtle" style="padding:0 10px 10px 10px;font-size:11px;">Sample — AI-illustrated</p>
+    </div>
+  </div>
+
+  <h3 style="font-family:var(--serif);font-size:16px;margin-top:32px;">Real mosaics from this room</h3>
   <div class="archGrid" id="archGrid"></div>
 </div>
 
@@ -182,12 +273,12 @@ const HTML = `<!DOCTYPE html>
 </div>
 
 <div class="page" id="page-stats">
-  <h2 class="hero-h">Stats — this room</h2>
-  <p class="subtle">Real numbers, this room only — Blitz and Long Hour each keep their own.</p>
+  <h2 class="hero-h">Stats — all of Tilehive</h2>
+  <p class="subtle">Blitz and Long Hour, added together — the real, site-wide totals.</p>
   <div class="statCards">
-    <div class="statCard"><div class="num" id="bigStatUsers">0</div><div class="lbl">People who've painted here</div></div>
-    <div class="statCard"><div class="num" id="bigStatCountries">0</div><div class="lbl">Countries represented</div></div>
-    <div class="statCard"><div class="num" id="bigStatArchive">0</div><div class="lbl">Mosaics archived</div></div>
+    <div class="statCard"><div class="num" id="bigStatUsers">—</div><div class="lbl">People who've ever painted</div></div>
+    <div class="statCard"><div class="num" id="bigStatCountries">—</div><div class="lbl">Countries represented</div></div>
+    <div class="statCard"><div class="num" id="bigStatArchive">—</div><div class="lbl">Mosaics archived</div></div>
   </div>
   <h3 style="font-family:var(--serif);font-size:16px;">By country</h3>
   <div id="countryBars"></div>
@@ -211,10 +302,31 @@ const HTML = `<!DOCTYPE html>
 
 <div class="page" id="page-terms">
   <h2 class="hero-h">Terms of Use &amp; Privacy</h2>
-  <div class="panel" style="border-left:3px solid var(--amber);color:var(--muted);font-size:13px;">Placeholder copy — the real version needs an actual lawyer before launch.</div>
-  <p class="subtle" style="max-width:70ch;"><b style="color:var(--ink);">Painting here is public.</b> Anything you paint becomes part of that hour's permanent, public mosaic once your block locks.</p>
-  <p class="subtle" style="max-width:70ch;"><b style="color:var(--ink);">The license you grant us.</b> You give Tilehive the right to display, reproduce, archive, and use the mosaic — including your contribution — in prints, marketing, or a future licensing deal.</p>
-  <p class="subtle" style="max-width:70ch;"><b style="color:var(--ink);">Privacy, briefly.</b> No password is stored by Tilehive for name-based sign-in; real OAuth sign-in is coming.</p>
+  <p class="subtle" style="max-width:70ch;">Last updated: this is the current version in effect while Tilehive is in early access.</p>
+
+  <h3 style="font-family:var(--serif);font-size:17px;margin-top:26px;">1. Using Tilehive</h3>
+  <p class="subtle" style="max-width:70ch;">Anyone can watch the live mosaic and browse the Archive without an account. Painting, voting on a name, liking a mosaic, or downloading requires signing in.</p>
+
+  <h3 style="font-family:var(--serif);font-size:17px;margin-top:22px;">2. What you paint is public and permanent</h3>
+  <p class="subtle" style="max-width:70ch;">Once your block locks, it becomes part of that hour's mosaic and is preserved in the public Archive. There is no way to delete or make private a block that has already locked.</p>
+
+  <h3 style="font-family:var(--serif);font-size:17px;margin-top:22px;">3. The license you grant us</h3>
+  <p class="subtle" style="max-width:70ch;">By painting on Tilehive, you grant Tilehive a worldwide, royalty-free license to display, reproduce, archive, and otherwise use the resulting mosaic — including your contribution within it — including in prints, marketing, and any future licensing of a completed mosaic. You keep the right to say you contributed to it; Tilehive keeps the right to use the mosaic as a whole.</p>
+
+  <h3 style="font-family:var(--serif);font-size:17px;margin-top:22px;">4. Your name is a nickname, not your identity</h3>
+  <p class="subtle" style="max-width:70ch;">Whatever name you paint under may be shown next to your block, in the Archive's collaborator list, and on your profile. Tilehive does not display your email address or real name to other users.</p>
+
+  <h3 style="font-family:var(--serif);font-size:17px;margin-top:22px;">5. Conduct</h3>
+  <p class="subtle" style="max-width:70ch;">No hateful imagery, harassment, or illegal content, in paintings or in submitted names. Violations may result in a block being removed from the Archive and the responsible account being suspended, without notice.</p>
+
+  <h3 style="font-family:var(--serif);font-size:17px;margin-top:22px;">6. Accounts and payments</h3>
+  <p class="subtle" style="max-width:70ch;">Sign-in currently uses a display name only; account-based sign-in (Google or Discord) is being added. VIP, when available, is a paid subscription that affects queue priority and download limits only — never painting ability, block size, or turn length.</p>
+
+  <h3 style="font-family:var(--serif);font-size:17px;margin-top:22px;">7. Changes</h3>
+  <p class="subtle" style="max-width:70ch;">These terms may be updated as Tilehive adds features such as real sign-in and payments. Continuing to use Tilehive after a change means you accept the updated terms.</p>
+
+  <h3 style="font-family:var(--serif);font-size:17px;margin-top:22px;">8. Privacy</h3>
+  <p class="subtle" style="max-width:70ch;">Tilehive stores your display name, your painting activity, and your approximate country (detected automatically, never your precise location) to run the queue, the naming vote, and download limits. No password is stored for name-based sign-in.</p>
 </div>
 </main>
 
@@ -297,6 +409,7 @@ function showPage(name){
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   if (name === 'archive') ws.send(JSON.stringify({ type:'getArchive' }));
+  if (name === 'stats') loadGlobalStats();
   if (name === 'profile') {
     if (!myName){
       document.getElementById('profileName').textContent = 'Not signed in yet';
@@ -312,7 +425,7 @@ function renderArchiveGallery(items){
   const el = document.getElementById('archGrid');
   if (!items.length){ el.innerHTML = '<p class="subtle">Nothing archived from this room yet — come back after the first hour finishes.</p>'; return; }
   el.innerHTML = items.map(a =>
-    '<div class="archCard" onclick="openArchiveDetail(\''+a.id+'\')"><b style="font-family:var(--serif);">'+a.name+'</b>'+
+    '<div class="archCard" onclick="openArchiveDetail(&quot;'+a.id+'&quot;)"><b style="font-family:var(--serif);">'+a.name+'</b>'+
     '<p style="font-size:12px;color:var(--muted);margin:4px 0 0 0;">'+new Date(a.startedAt).toLocaleString()+' · '+a.headcount+' painters · '+a.likes+' ♡</p></div>'
   ).join('');
 }
@@ -386,7 +499,7 @@ function renderProfile(msg){
   if (!msg.contributions.length){ el.innerHTML = '<p class="subtle">No contributions from this room yet.</p>'; return; }
   el.innerHTML = msg.contributions.map(c =>
     '<div class="row" style="margin-bottom:6px;"><span style="flex:1;">'+c.name+' — '+new Date(c.startedAt).toLocaleDateString()+' — '+c.likes+' likes</span>'+
-    '<button onclick="openArchiveDetail(\''+c.id+'\')">View</button></div>'
+    '<button onclick="openArchiveDetail(&quot;'+c.id+'&quot;)">View</button></div>'
   ).join('');
 }
 
@@ -398,6 +511,33 @@ function renderCountryBars(countries){
   el.innerHTML = entries.map(([code,count]) =>
     '<div class="barrow"><span style="width:40px;">'+code+'</span><div class="bar" style="width:'+Math.max(8,(count/max)*260)+'px;"></div><span>'+count+'</span></div>'
   ).join('') || '<p class="subtle">Nobody yet.</p>';
+}
+
+// The Stats page shows a true site-wide total — Blitz and Long Hour are
+// separate rooms under the hood, so this fetches each one's real numbers
+// over plain HTTP (no WebSocket needed just to read counters) and adds
+// them together, rather than only showing whichever room you're connected to.
+async function loadGlobalStats(){
+  try {
+    const [blitzRes, longRes] = await Promise.all([
+      fetch('/stats'),
+      fetch('/stats?mode=long'),
+    ]);
+    const blitz = await blitzRes.json();
+    const long = await longRes.json();
+    const totalUsers = (blitz.allTimeUserCount||0) + (long.allTimeUserCount||0);
+    const totalArchive = (blitz.archiveCount||0) + (long.archiveCount||0);
+    const mergedCountries = {};
+    for (const src of [blitz.countries||{}, long.countries||{}]){
+      for (const [code,count] of Object.entries(src)) mergedCountries[code] = (mergedCountries[code]||0) + count;
+    }
+    document.getElementById('bigStatUsers').textContent = totalUsers;
+    document.getElementById('bigStatCountries').textContent = Object.keys(mergedCountries).length;
+    document.getElementById('bigStatArchive').textContent = totalArchive;
+    renderCountryBars(mergedCountries);
+  } catch (e) {
+    document.getElementById('bigStatUsers').textContent = '—';
+  }
 }
 
 function updateQueueInfo(total){
@@ -427,13 +567,13 @@ function applyState(msg){
   renderNaming(msg.nameVotes, msg.namingOpen);
   rebuildGrid(msg.blocks);
   if (msg.stats){
+    // These three (the header strip) are deliberately "this room, live" —
+    // the dedicated Stats page shows the real cross-room total instead,
+    // fetched separately in loadGlobalStats() so this per-room push never
+    // overwrites it.
     document.getElementById('statUsers').textContent = msg.stats.allTimeUserCount;
     document.getElementById('statCountries').textContent = msg.stats.countryCount;
     document.getElementById('statArchive').textContent = msg.stats.archiveCount;
-    document.getElementById('bigStatUsers').textContent = msg.stats.allTimeUserCount;
-    document.getElementById('bigStatCountries').textContent = msg.stats.countryCount;
-    document.getElementById('bigStatArchive').textContent = msg.stats.archiveCount;
-    renderCountryBars(msg.stats.countries);
   }
 }
 
@@ -442,7 +582,9 @@ function renderNaming(votes, open){
   const body = document.getElementById('namingBody');
   if (!open){
     section.classList.add('locked');
-    body.innerHTML = '<p style="margin:6px 0 0 0;">Naming opens once this hour is mostly painted, so people are voting on something real.</p>';
+    const mins = Math.round((config?.namingWindowMs || 0) / 60000);
+    const windowText = mins >= 1 ? ('in the last ' + mins + ' minute' + (mins===1?'':'s') + ' of this hour') : 'right near the end of this hour';
+    body.innerHTML = '<p style="margin:6px 0 0 0;">Naming opens ' + windowText + ', so people are voting on something real.</p>';
     return;
   }
   section.classList.remove('locked');
