@@ -49,7 +49,7 @@ export class MosaicHour {
   }
 
   async load(requestedMode) {
-    const stored = await this.state.storage.get(['modeKey', 'config', 'hour', 'blocks', 'queue', 'users', 'nameVotes']);
+    const stored = await this.state.storage.get(['modeKey', 'config', 'hour', 'blocks', 'queue', 'users', 'nameVotes', 'stats']);
     // Mode is decided once, the first time this instance is ever used, then
     // persists for its lifetime — "current" is always a Blitz instance,
     // "long-hour" is always Long, nobody can flip one into the other mid-run.
@@ -61,6 +61,11 @@ export class MosaicHour {
     this.queue = stored.get('queue') || [];
     this.users = stored.get('users') || {};
     this.nameVotes = stored.get('nameVotes') || {};
+    // Real, honestly-scoped stats for THIS room (Blitz and Long each count
+    // their own) — never fabricated. allTimeUserCount counts unique people
+    // who have ever said hello here; countries comes straight from
+    // Cloudflare's own geolocation on each new visitor's first request.
+    this.stats = stored.get('stats') || { allTimeUserCount: 0, countries: {}, archiveCount: 0 };
     const existingAlarm = await this.state.storage.getAlarm();
     if (existingAlarm == null) {
       await this.state.storage.setAlarm(Date.now() + this.config.tickIntervalMs);
@@ -111,7 +116,10 @@ export class MosaicHour {
       }
       const pair = new WebSocketPair();
       const [client, server] = Object.values(pair);
-      this.handleSession(server);
+      // Cloudflare attaches real geolocation to every request for free —
+      // no IP lookups or extra services needed for honest country stats.
+      const country = (request.cf && request.cf.country) || 'XX';
+      this.handleSession(server, country);
       return new Response(null, { status: 101, webSocket: client });
     }
 
@@ -123,9 +131,9 @@ export class MosaicHour {
     return new Response('not found', { status: 404 });
   }
 
-  handleSession(ws) {
+  handleSession(ws, country) {
     ws.accept();
-    const session = { ws, userId: null, name: null };
+    const session = { ws, userId: null, name: null, country: country || 'XX' };
     this.sessions.add(session);
 
     ws.addEventListener('message', async (evt) => {
@@ -147,9 +155,15 @@ export class MosaicHour {
       case 'hello': {
         session.userId = msg.userId || crypto.randomUUID();
         session.name = String(msg.name || 'Guest').slice(0, 24);
+        const isNewUser = !this.users[session.userId];
         this.users[session.userId] = this.users[session.userId] || { name: session.name, isVip: !!msg.isVip };
         this.users[session.userId].name = session.name;
         if (msg.isVip !== undefined) this.users[session.userId].isVip = !!msg.isVip;
+        if (isNewUser) {
+          this.stats.allTimeUserCount++;
+          this.stats.countries[session.country] = (this.stats.countries[session.country] || 0) + 1;
+          await this.persist('stats');
+        }
         await this.persist('users');
         session.ws.send(JSON.stringify({ type: 'welcome', userId: session.userId }));
         this.sendStateTo(session);
@@ -414,6 +428,8 @@ export class MosaicHour {
     archive.unshift(archived);
     archive = archive.slice(0, 200);
     await this.state.storage.put('archive', archive);
+    this.stats.archiveCount++;
+    await this.persist('stats');
 
     this.hour = this.createNewHour();
     this.blocks = [];
@@ -435,6 +451,12 @@ export class MosaicHour {
       queueLength: this.queue.length,
       nameVotes: this.nameVotes,
       namingOpen: this.isNamingOpen(),
+      stats: {
+        allTimeUserCount: this.stats.allTimeUserCount,
+        countryCount: Object.keys(this.stats.countries).length,
+        archiveCount: this.stats.archiveCount,
+      },
+      modeKey: this.modeKey,
     };
   }
 
