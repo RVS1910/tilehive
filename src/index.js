@@ -49,11 +49,22 @@ const HTML = `<!DOCTYPE html>
   h2.hero-h{font-family:var(--serif);font-size:24px;margin:0 0 4px 0;}
   .subtle{font-size:13px;color:var(--muted);margin:0 0 14px 0;}
 
-  #mosaic{display:grid;gap:4px;margin-bottom:14px;}
-  #mosaic canvas{width:100%;height:100%;background:#fff;border:1px solid var(--line);display:block;}
+  #mosaic{display:grid;gap:0;margin-bottom:14px;border:1px solid var(--line);}
+  #mosaic canvas{width:100%;height:100%;background:#fff;display:block;}
   .cellwrap{position:relative;}
-  .cellwrap.mine::after{content:"";position:absolute;inset:0;outline:2px dashed var(--indigo);pointer-events:none;}
+  .cellwrap.mine::after{content:"";position:absolute;inset:0;outline:2px dashed var(--indigo);outline-offset:-2px;pointer-events:none;z-index:2;}
   .ownerlabel{position:absolute;bottom:2px;left:2px;font-size:9px;background:rgba(255,255,255,.8);padding:0 3px;color:var(--muted);}
+  .navlink{color:#C9C1B2;text-decoration:none;font-size:12.5px;cursor:pointer;margin-right:14px;}
+  .page{display:none;} .page.active{display:block;}
+  .archGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:14px;}
+  .archCard{background:var(--panel);border:1px solid var(--line);padding:12px;cursor:pointer;}
+  .chip{display:inline-block;background:#fff;border:1px solid var(--line);padding:3px 10px;border-radius:12px;font-size:12px;margin:2px;}
+  .statCards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:16px 0;}
+  .statCard{background:var(--panel);border:1px solid var(--line);padding:18px;}
+  .statCard .num{font-family:var(--serif);font-size:32px;color:var(--indigo);}
+  .statCard .lbl{font-size:12px;color:var(--muted);}
+  .barrow{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:13px;}
+  .barrow .bar{background:var(--indigo);height:12px;}
 
   .join-bar{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);padding:12px 16px;margin-bottom:28px;}
   .join-bar span{font-size:13px;color:var(--muted);}
@@ -81,8 +92,11 @@ const HTML = `<!DOCTYPE html>
 <body>
 
 <header>
-  <span class="word">Tilehive</span>
+  <span class="word" style="cursor:pointer;" onclick="showPage('live')">Tilehive</span>
   <div class="meta">
+    <a class="navlink" onclick="showPage('archive')">Archive</a>
+    <a class="navlink" onclick="showPage('stats')">Stats</a>
+    <a class="navlink" onclick="showPage('profile')">Profile</a>
     <button id="modeBlitz" class="active" style="padding:4px 10px;">Blitz</button>
     <button id="modeLong" style="padding:4px 10px;">Long Hour</button>
     <span><b id="paintingCount">0</b> painting now</span>
@@ -100,6 +114,7 @@ const HTML = `<!DOCTYPE html>
 </div>
 
 <main>
+<div class="page active" id="page-live">
   <section>
     <h2 class="hero-h">The hive right now</h2>
     <p class="subtle" id="hourSubtitle">Sizing this hour...</p>
@@ -138,6 +153,57 @@ const HTML = `<!DOCTYPE html>
     <b style="font-family:var(--serif);font-size:16px;">Name this mosaic</b>
     <div id="namingBody"></div>
   </section>
+  <p style="text-align:center;"><a class="navlink" style="color:var(--indigo);" onclick="showPage('terms')">Terms of Use &amp; Privacy</a></p>
+</div>
+
+<div class="page" id="page-archive">
+  <h2 class="hero-h">Archive</h2>
+  <p class="subtle">Every past hour from this room — browse freely, no sign-in needed to look.</p>
+  <div class="archGrid" id="archGrid"></div>
+</div>
+
+<div class="page" id="page-archiveDetail">
+  <a class="navlink" style="color:var(--indigo);" onclick="showPage('archive')">← Back to archive</a>
+  <h2 class="hero-h" id="detailName" style="margin-top:10px;">—</h2>
+  <p class="subtle" id="detailMeta"></p>
+  <div id="detailMosaic" style="display:grid;gap:0;border:1px solid var(--line);margin-bottom:12px;"></div>
+  <div class="row">
+    <button id="likeBtn">♡ Like</button>
+    <button id="shareBtn">Share</button>
+    <button class="primary" id="downloadBtn">Download</button>
+  </div>
+  <div class="panel" style="margin-top:16px;">
+    <b>Painted by</b>
+    <div id="collabChips" style="margin-top:8px;"></div>
+  </div>
+</div>
+
+<div class="page" id="page-stats">
+  <h2 class="hero-h">Stats — this room</h2>
+  <p class="subtle">Real numbers, this room only — Blitz and Long Hour each keep their own.</p>
+  <div class="statCards">
+    <div class="statCard"><div class="num" id="bigStatUsers">0</div><div class="lbl">People who've painted here</div></div>
+    <div class="statCard"><div class="num" id="bigStatCountries">0</div><div class="lbl">Countries represented</div></div>
+    <div class="statCard"><div class="num" id="bigStatArchive">0</div><div class="lbl">Mosaics archived</div></div>
+  </div>
+  <h3 style="font-family:var(--serif);font-size:16px;">By country</h3>
+  <div id="countryBars"></div>
+</div>
+
+<div class="page" id="page-profile">
+  <h2 class="hero-h" id="profileName">—</h2>
+  <div class="panel">🏆 <b>Naming vote wins:</b> <span id="profWins">0</span> &nbsp;·&nbsp; <b>Votes received on your suggestions:</b> <span id="profVotes">0</span></div>
+  <h3 style="font-family:var(--serif);font-size:16px;">Your contributions</h3>
+  <div id="profContribs"></div>
+</div>
+
+<div class="page" id="page-terms">
+  <h2 class="hero-h">Terms of Use &amp; Privacy</h2>
+  <div class="panel" style="border-left:3px solid var(--amber);color:var(--muted);font-size:13px;">Placeholder copy — the real version needs an actual lawyer before launch.</div>
+  <p class="subtle" style="max-width:70ch;"><b style="color:var(--ink);">Painting here is public.</b> Anything you paint becomes part of that hour's permanent, public mosaic once your block locks.</p>
+  <p class="subtle" style="max-width:70ch;"><b style="color:var(--ink);">The license you grant us.</b> You give Tilehive the right to display, reproduce, archive, and use the mosaic — including your contribution — in prints, marketing, or a future licensing deal.</p>
+  <p class="subtle" style="max-width:70ch;"><b style="color:var(--ink);">Privacy, briefly.</b> No password is stored by Tilehive for name-based sign-in; real OAuth sign-in is coming.</p>
+</div>
 </main>
 
 <div id="nameModal">
@@ -209,6 +275,117 @@ function handleMessage(msg){
   else if (msg.type === 'claimFailed') { statusLine('someone else was faster — still in queue'); }
   else if (msg.type === 'checkin') { if (msg.blockId === myBlockId) document.getElementById('checkinModal').classList.add('show'); }
   else if (msg.type === 'mosaicReset') { myBlockId = null; myQueuePosition = null; document.getElementById('workspace').classList.remove('active'); }
+  else if (msg.type === 'archiveList') { renderArchiveGallery(msg.items); }
+  else if (msg.type === 'archiveDetail') { renderArchiveDetail(msg.item); }
+  else if (msg.type === 'profileData') { renderProfile(msg); }
+}
+
+// ---- page navigation ----
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (name === 'archive') ws.send(JSON.stringify({ type:'getArchive' }));
+  if (name === 'profile') {
+    if (!myName){
+      document.getElementById('profileName').textContent = 'Not signed in yet';
+      document.getElementById('profContribs').innerHTML = '<p class="subtle">Join the queue once to create a profile.</p>';
+      return;
+    }
+    document.getElementById('profileName').textContent = myName;
+    ws.send(JSON.stringify({ type:'getProfile' }));
+  }
+}
+
+function renderArchiveGallery(items){
+  const el = document.getElementById('archGrid');
+  if (!items.length){ el.innerHTML = '<p class="subtle">Nothing archived from this room yet — come back after the first hour finishes.</p>'; return; }
+  el.innerHTML = items.map(a =>
+    '<div class="archCard" onclick="openArchiveDetail(\''+a.id+'\')"><b style="font-family:var(--serif);">'+a.name+'</b>'+
+    '<p style="font-size:12px;color:var(--muted);margin:4px 0 0 0;">'+new Date(a.startedAt).toLocaleString()+' · '+a.headcount+' painters · '+a.likes+' ♡</p></div>'
+  ).join('');
+}
+function openArchiveDetail(id){
+  currentArchiveId = id;
+  showPage('archiveDetail');
+  ws.send(JSON.stringify({ type:'getArchiveDetail', id }));
+}
+let currentArchiveId = null;
+let currentArchiveItem = null;
+
+function renderArchiveDetail(item){
+  if (!item) { document.getElementById('detailName').textContent = 'Not found'; return; }
+  currentArchiveItem = item;
+  document.getElementById('detailName').textContent = item.name;
+  document.getElementById('detailMeta').textContent = new Date(item.startedAt).toLocaleString() + ' · ' + item.headcount + ' painters';
+  const cols = Math.max(1, Math.ceil(Math.sqrt(100)));
+  const grid = document.getElementById('detailMosaic');
+  grid.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
+  grid.innerHTML = '';
+  const names = new Set();
+  for (const b of item.blocks){
+    const canvas = document.createElement('canvas');
+    canvas.width = b.w*60; canvas.height = b.h*60;
+    canvas.style.width = '100%'; canvas.style.display = 'block';
+    grid.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    for (const op of (b.strokes||[])) drawOp(ctx, canvas.width, canvas.height, op);
+    if (b.ownerName) names.add(b.ownerName);
+  }
+  document.getElementById('collabChips').innerHTML = [...names].map(n => '<span class="chip">'+n+'</span>').join('') || '<span class="subtle">Nobody painted here.</span>';
+  document.getElementById('likeBtn').textContent = '♡ Like (' + (item.likes||0) + ')';
+}
+document.getElementById('likeBtn').onclick = () => {
+  if (!myName){ alert('Join the queue once first to set a name, then you can like mosaics.'); return; }
+  ws.send(JSON.stringify({ type:'likeArchive', id: currentArchiveId }));
+};
+document.getElementById('shareBtn').onclick = () => {
+  const url = location.href.split('#')[0] + '#' + currentArchiveId;
+  navigator.clipboard?.writeText(url);
+  alert('Link copied: ' + url);
+};
+document.getElementById('downloadBtn').onclick = () => {
+  if (!currentArchiveItem) return;
+  const cols = Math.max(1, Math.ceil(Math.sqrt(100)));
+  const rows = Math.ceil(currentArchiveItem.blocks.length / cols);
+  const cellPx = 60;
+  const big = document.createElement('canvas');
+  big.width = cols*cellPx; big.height = rows*cellPx;
+  const ctx = big.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,big.width,big.height);
+  currentArchiveItem.blocks.forEach((b, i) => {
+    const col = i % cols, row = Math.floor(i/cols);
+    const ox = col*cellPx, oy = row*cellPx;
+    for (const op of (b.strokes||[])){
+      ctx.save(); ctx.translate(ox, oy);
+      drawOp(ctx, cellPx, cellPx, op);
+      ctx.restore();
+    }
+  });
+  const link = document.createElement('a');
+  link.download = (currentArchiveItem.name || 'tilehive-mosaic') + '.png';
+  link.href = big.toDataURL('image/png');
+  link.click();
+};
+
+function renderProfile(msg){
+  document.getElementById('profWins').textContent = msg.namingWins;
+  document.getElementById('profVotes').textContent = msg.votesReceived;
+  const el = document.getElementById('profContribs');
+  if (!msg.contributions.length){ el.innerHTML = '<p class="subtle">No contributions from this room yet.</p>'; return; }
+  el.innerHTML = msg.contributions.map(c =>
+    '<div class="row" style="margin-bottom:6px;"><span style="flex:1;">'+c.name+' — '+new Date(c.startedAt).toLocaleDateString()+' — '+c.likes+' likes</span>'+
+    '<button onclick="openArchiveDetail(\''+c.id+'\')">View</button></div>'
+  ).join('');
+}
+
+function renderCountryBars(countries){
+  const el = document.getElementById('countryBars');
+  if (!el) return;
+  const entries = Object.entries(countries||{}).sort((a,b)=>b[1]-a[1]);
+  const max = entries.length ? entries[0][1] : 1;
+  el.innerHTML = entries.map(([code,count]) =>
+    '<div class="barrow"><span style="width:40px;">'+code+'</span><div class="bar" style="width:'+Math.max(8,(count/max)*260)+'px;"></div><span>'+count+'</span></div>'
+  ).join('') || '<p class="subtle">Nobody yet.</p>';
 }
 
 function updateQueueInfo(total){
@@ -241,6 +418,10 @@ function applyState(msg){
     document.getElementById('statUsers').textContent = msg.stats.allTimeUserCount;
     document.getElementById('statCountries').textContent = msg.stats.countryCount;
     document.getElementById('statArchive').textContent = msg.stats.archiveCount;
+    document.getElementById('bigStatUsers').textContent = msg.stats.allTimeUserCount;
+    document.getElementById('bigStatCountries').textContent = msg.stats.countryCount;
+    document.getElementById('bigStatArchive').textContent = msg.stats.archiveCount;
+    renderCountryBars(msg.stats.countries);
   }
 }
 
