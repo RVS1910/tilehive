@@ -97,6 +97,8 @@ const HTML = `<!DOCTYPE html>
     <a class="navlink" onclick="showPage('archive')">Archive</a>
     <a class="navlink" onclick="showPage('stats')">Stats</a>
     <a class="navlink" onclick="showPage('profile')">Profile</a>
+    <a class="navlink" onclick="showPage('pricing')">Go VIP</a>
+    <a class="navlink" id="headerSignIn" style="color:var(--amber);font-weight:600;" onclick="openNameModal('signin')">Sign in</a>
     <button id="modeBlitz" class="active" style="padding:4px 10px;">Blitz</button>
     <button id="modeLong" style="padding:4px 10px;">Long Hour</button>
     <span><b id="paintingCount">0</b> painting now</span>
@@ -116,6 +118,7 @@ const HTML = `<!DOCTYPE html>
 <main>
 <div class="page active" id="page-live">
   <section>
+    <p style="font-family:var(--serif);font-size:18px;margin:18px 0 4px 0;">Watch the world paint, together — one hour at a time.</p>
     <h2 class="hero-h">The hive right now</h2>
     <p class="subtle" id="hourSubtitle">Sizing this hour...</p>
     <div id="mosaic"></div>
@@ -195,6 +198,15 @@ const HTML = `<!DOCTYPE html>
   <div class="panel">🏆 <b>Naming vote wins:</b> <span id="profWins">0</span> &nbsp;·&nbsp; <b>Votes received on your suggestions:</b> <span id="profVotes">0</span></div>
   <h3 style="font-family:var(--serif);font-size:16px;">Your contributions</h3>
   <div id="profContribs"></div>
+</div>
+
+<div class="page" id="page-pricing">
+  <h2 class="hero-h">Go VIP</h2>
+  <p class="subtle">Priority on freed blocks, unlimited downloads. Never faster painting, never more tiles — see the Terms page for what VIP does and doesn't change.</p>
+  <div class="row" style="align-items:stretch;gap:20px;margin-top:14px;">
+    <div class="panel" style="flex:1;"><b>Standard</b><div style="font-family:var(--serif);font-size:28px;margin:8px 0;">Free</div><p class="subtle">Full 32-color palette, join the queue like everyone else.</p></div>
+    <div class="panel" style="flex:1;border-color:var(--amber);"><b style="color:var(--amber);">VIP</b><div style="font-family:var(--serif);font-size:28px;margin:8px 0;">—</div><p class="subtle">Priority queue placement, unlimited downloads, no ads.</p><button disabled>Payments coming soon</button></div>
+  </div>
 </div>
 
 <div class="page" id="page-terms">
@@ -637,10 +649,7 @@ document.getElementById('sizeLarge').onclick = (e) => setSize(11, e.target);
 
 // ---- controls ----
 document.getElementById('joinBtn').onclick = () => {
-  if (!myName){
-    document.getElementById('nameModal').classList.add('show');
-    return;
-  }
+  if (!myName){ openNameModal('join'); return; }
   ws.send(JSON.stringify({ type:'joinQueue' }));
 };
 document.getElementById('finishBtn').onclick = () => { if (myBlockId) ws.send(JSON.stringify({ type:'finishBlock', blockId: myBlockId })); };
@@ -649,15 +658,26 @@ document.getElementById('stillHereBtn').onclick = () => {
   if (myBlockId) ws.send(JSON.stringify({ type:'ping', blockId: myBlockId }));
 };
 
-// ---- name entry (only needed when you actually try to join) ----
+// ---- name entry (only needed when you actually try to join, or click "Sign in") ----
+let nameModalIntent = 'join';
+function openNameModal(intent){
+  nameModalIntent = intent;
+  document.getElementById('nameModal').classList.add('show');
+}
+function updateHeaderSignIn(){
+  const el = document.getElementById('headerSignIn');
+  if (el) el.textContent = myName ? ('Hi, ' + myName) : 'Sign in';
+}
 document.getElementById('enterBtn').onclick = () => {
   const v = document.getElementById('nameEntry').value.trim();
   myName = v || 'Guest';
   localStorage.setItem('tilehive_name', myName);
   document.getElementById('nameModal').classList.remove('show');
+  updateHeaderSignIn();
   ws.send(JSON.stringify({ type:'hello', userId, name: myName, isVip: vipDebug }));
-  ws.send(JSON.stringify({ type:'joinQueue' }));
+  if (nameModalIntent === 'join') ws.send(JSON.stringify({ type:'joinQueue' }));
 };
+updateHeaderSignIn();
 
 document.getElementById('modeBlitz').onclick = () => {
   document.getElementById('modeBlitz').classList.add('active');
