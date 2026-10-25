@@ -128,6 +128,17 @@ export class MosaicHour {
       return new Response(JSON.stringify(archive), { headers: { 'content-type': 'application/json' } });
     }
 
+    // Plain HTTP, no WebSocket needed — lets the client total up both rooms'
+    // numbers for a genuine site-wide figure without opening two live
+    // connections just to read a handful of counters.
+    if (url.pathname === '/stats') {
+      return new Response(JSON.stringify({
+        allTimeUserCount: this.stats.allTimeUserCount,
+        countries: this.stats.countries,
+        archiveCount: this.stats.archiveCount,
+      }), { headers: { 'content-type': 'application/json' } });
+    }
+
     return new Response('not found', { status: 404 });
   }
 
