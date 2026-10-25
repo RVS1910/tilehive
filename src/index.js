@@ -93,6 +93,12 @@ const HTML = `<!DOCTYPE html>
 
 <div id="offerBanner"></div>
 
+<div id="statsBar" style="background:#241F19;color:#C9C1B2;padding:10px 24px;font-size:12.5px;display:flex;gap:28px;flex-wrap:wrap;">
+  <span><b id="statUsers" style="color:var(--amber);">0</b> people have painted in this room</span>
+  <span><b id="statCountries" style="color:var(--amber);">0</b> countries represented here</span>
+  <span><b id="statArchive" style="color:var(--amber);">0</b> mosaics archived from this room</span>
+</div>
+
 <main>
   <section>
     <h2 class="hero-h">The hive right now</h2>
@@ -231,6 +237,11 @@ function applyState(msg){
   updateQueueInfo(msg.queueLength);
   renderNaming(msg.nameVotes, msg.namingOpen);
   rebuildGrid(msg.blocks);
+  if (msg.stats){
+    document.getElementById('statUsers').textContent = msg.stats.allTimeUserCount;
+    document.getElementById('statCountries').textContent = msg.stats.countryCount;
+    document.getElementById('statArchive').textContent = msg.stats.archiveCount;
+  }
 }
 
 function renderNaming(votes, open){
